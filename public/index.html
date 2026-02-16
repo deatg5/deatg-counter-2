@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Counter of deatg</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h2>Tabs</h2>
+            <div class="tabs" id="tabList"></div>
+            <button id="addTabBtn">Add Tab</button>
+            
+            <div class="settings-panel">
+                <h3>Global Settings</h3>
+                <div>
+                    <label>Increase Amount:</label>
+                    <input type="number" id="globalIncreaseAmount" min="1">
+                </div>
+                <div>
+                    <label>Decrease Amount:</label>
+                    <input type="number" id="globalDecreaseAmount" min="1">
+                </div>
+                <div>
+                    <label>Increase Hotkey:</label>
+                    <button id="globalIncreaseHotkey">Set Hotkey</button>
+                </div>
+                <div>
+                    <label>Decrease Hotkey:</label>
+                    <button id="globalDecreaseHotkey">Set Hotkey</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="controls">
+                <button id="addCounterBtn">Add Counter</button>
+            </div>
+            <div class="counter-list" id="counterList"></div>
+        </div>
+    </div>
+
+    <!-- Edit Counter Modal -->
+    <div id="editModal" class="modal" style="display: none">
+        <div class="modal-content">
+            <h2>Edit Counter</h2>
+            <form id="counterForm">
+                <input type="hidden" id="editCounterId">
+                <div class="form-group">
+                    <label>Name:</label>
+                    <input type="text" id="counterName" required>
+                </div>
+                <div class="form-group">
+                    <label>Count:</label>
+                    <input type="number" id="counterCount">
+                </div>
+                <div class="form-group">
+                    <label>Increase Amount:</label>
+                    <input type="number" id="counterIncreaseAmount" placeholder="Use global">
+                </div>
+                <div class="form-group">
+                    <label>Decrease Amount:</label>
+                    <input type="number" id="counterDecreaseAmount" placeholder="Use global">
+                </div>
+                <div class="form-group">
+                    <label>Increase Hotkey:</label>
+                    <button type="button" id="counterIncreaseHotkey">Set Hotkey</button>
+                    <button type="button" id="clearIncreaseHotkey" class="clear-btn">Clear</button>
+                </div>
+                <div class="form-group">
+                    <label>Decrease Hotkey:</label>
+                    <button type="button" id="counterDecreaseHotkey">Set Hotkey</button>
+                    <button type="button" id="clearDecreaseHotkey" class="clear-btn">Clear</button>
+                </div>
+                <div class="modal-buttons">
+                    <button type="submit">Save</button>
+                    <button type="button" id="cancelEditBtn">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Tab Modal -->
+    <div id="addTabModal" class="modal" style="display: none">
+        <div class="modal-content">
+            <h2>Add New Tab</h2>
+            <form id="tabForm">
+                <div class="form-group">
+                    <label>Tab Name:</label>
+                    <input type="text" id="newTabName" required>
+                </div>
+                <div class="modal-buttons">
+                    <button type="submit">Add</button>
+                    <button type="button" id="cancelTabBtn">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/handlers.js"></script>
+</body>
+</html>
