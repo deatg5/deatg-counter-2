@@ -19,27 +19,34 @@ export class StorageManager {
       const data = await fs.readFile(this.filePath, 'utf-8');
       const parsed = JSON.parse(data) as AppState;
 
-      parsed.globalSettings.richPresenceEnabled = Boolean(parsed.globalSettings.richPresenceEnabled);
-      return parsed;
-    } catch {
-      return {
-        counters: [],
-        tabs: [
-          {
-            id: 'default',
-            name: 'Counters',
-            order: 0
-          }
-        ],
-        globalSettings: {
-          increaseAmount: 1,
-          decreaseAmount: 1,
-          increaseHotkey: 'CommandOrControl+Up',
-          decreaseHotkey: 'CommandOrControl+Down',
-          richPresenceEnabled: false
-        },
-        activeTabId: 'default'
-      };
+    async loadState(): Promise<AppState> {
+        try {
+            const data = await fs.readFile(this.filePath, 'utf-8');
+            const parsed = JSON.parse(data) as AppState;
+            return {
+                ...parsed,
+                globalSettings: {
+                    ...parsed.globalSettings,
+                    richPresenceEnabled: Boolean(parsed.globalSettings?.richPresenceEnabled)
+                }
+            };
+        } catch {
+            return {
+                counters: [],
+                tabs: [{
+                    id: 'default',
+                    name: 'Counters',
+                    order: 0
+                }],
+                globalSettings: {
+                    increaseAmount: 1,
+                    decreaseAmount: 1,
+                    increaseHotkey: 'CommandOrControl+Up',
+                    decreaseHotkey: 'CommandOrControl+Down',
+                    richPresenceEnabled: false
+                },
+                activeTabId: 'default'
+            };
+        }
     }
-  }
 }

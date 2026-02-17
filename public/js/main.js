@@ -20,26 +20,35 @@ window.electron.onTabAdded((tab) => {
 });
 
 window.electron.onCounterUpdated((counter) => {
-  const index = appState.counters.findIndex((item) => item.id === counter.id);
-  if (index !== -1) {
-    appState.counters[index] = counter;
-    renderCounters();
-  }
+    const index = appState.counters.findIndex((c) => c.id === counter.id);
+    if (index !== -1) {
+        appState.counters[index] = counter;
+        renderCounters();
+    }
 });
 
-window.electron.onDiscordStatusUpdate((status) => {
-  discordStatus = status;
-  updateDiscordStatus();
+window.electron.onDiscordStatus((status) => {
+    const el = document.getElementById('discordStatusText');
+    if (!el) return;
+
+    if (!status.enabled) {
+        el.textContent = 'Discord status: disabled';
+        return;
+    }
+
+    el.textContent = status.connected
+        ? 'Discord status: connected'
+        : 'Discord status: unavailable (is Discord running?)';
 });
 
 window.addEventListener('click', (event) => {
-  const editModal = document.getElementById('editModal');
-  const addTabModal = document.getElementById('addTabModal');
+    const editModal = document.getElementById('editModal');
+    const addTabModal = document.getElementById('addTabModal');
 
-  if (event.target === editModal) {
-    window.handlers.closeModal();
-  }
-  if (event.target === addTabModal) {
-    window.handlers.closeTabModal();
-  }
+    if (event.target === editModal) {
+        window.handlers.closeModal();
+    }
+    if (event.target === addTabModal) {
+        window.handlers.closeTabModal();
+    }
 });

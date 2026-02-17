@@ -1,136 +1,140 @@
-import { BrowserWindow, globalShortcut } from 'electron';
 import { Counter, GlobalSettings } from './types';
 
 type HotkeyAction = {
-  action: 'increase' | 'decrease';
-  counterId: string;
-  amount: number;
+    action: 'increase' | 'decrease';
+    counterId: string;
+    amount: number;
 };
 
 export class HotkeyManager {
-  private localActions = new Map<string, HotkeyAction[]>();
-  private isPaused = false;
+    private shortcutHandler: ((accelerator: string) => void) | null = null;
 
-  registerCounterHotkeys(
-    counters: Counter[],
-    globalSettings: GlobalSettings,
-    onIncrease: (counterId: string, amount: number) => void,
-    onDecrease: (counterId: string, amount: number) => void
-  ): void {
-    this.unregisterAll();
+    setShortcutHandler(handler: ((accelerator: string) => void) | null) {
+        this.shortcutHandler = handler;
+    }
 
-    const hotkeyMap = new Map<string, HotkeyAction[]>();
-    const selectedCounters = counters.filter((counter) => counter.isSelected);
-
-    selectedCounters.forEach((counter) => {
-      if (counter.increaseHotkey) {
-        this.addToHotkeyMap(hotkeyMap, counter.increaseHotkey, {
-          action: 'increase',
-          counterId: counter.id,
-          amount: counter.increaseAmount ?? globalSettings.increaseAmount
+    registerCounterHotkeys(
+        counters: Counter[],
+        globalSettings: GlobalSettings,
+        onIncrease: (counterId: string, amount: number) => void,
+        onDecrease: (counterId: string, amount: number) => void
+    ) {
+        this.setShortcutHandler((accelerator) => {
+            const actions = this.resolveActionsForHotkey(accelerator, counters, globalSettings);
+            actions.forEach(({ action, counterId, amount }) => {
+                if (action === 'increase') {
+                    onIncrease(counterId, amount);
+                    return;
+                }
+                onDecrease(counterId, amount);
+            });
         });
-      }
+    }
 
-      if (counter.decreaseHotkey) {
-        this.addToHotkeyMap(hotkeyMap, counter.decreaseHotkey, {
-          action: 'decrease',
-          counterId: counter.id,
-          amount: counter.decreaseAmount ?? globalSettings.decreaseAmount
+    handleAccelerator(accelerator: string) {
+        this.shortcutHandler?.(accelerator);
+    }
+
+    private resolveActionsForHotkey(
+        accelerator: string,
+        counters: Counter[],
+        globalSettings: GlobalSettings
+    ): HotkeyAction[] {
+        const selectedCounters = counters.filter((counter) => counter.isSelected);
+        const normalizedPressed = this.normalizeAccelerator(accelerator);
+
+        const counterSpecificMatches = selectedCounters.flatMap((counter) => {
+            const actions: HotkeyAction[] = [];
+            if (counter.increaseHotkey && this.matchesHotkey(normalizedPressed, counter.increaseHotkey)) {
+                actions.push({
+                    action: 'increase',
+                    counterId: counter.id,
+                    amount: this.resolveAmount(counter.increaseAmount, globalSettings.increaseAmount)
+                });
+            }
+            if (counter.decreaseHotkey && this.matchesHotkey(normalizedPressed, counter.decreaseHotkey)) {
+                actions.push({
+                    action: 'decrease',
+                    counterId: counter.id,
+                    amount: this.resolveAmount(counter.decreaseAmount, globalSettings.decreaseAmount)
+                });
+            }
+            return actions;
         });
       }
     });
 
-    selectedCounters.forEach((counter) => {
-      if (!counter.increaseHotkey) {
-        this.addToHotkeyMap(hotkeyMap, globalSettings.increaseHotkey, {
-          action: 'increase',
-          counterId: counter.id,
-          amount: counter.increaseAmount ?? globalSettings.increaseAmount
-        });
-      }
-
-      if (!counter.decreaseHotkey) {
-        this.addToHotkeyMap(hotkeyMap, globalSettings.decreaseHotkey, {
-          action: 'decrease',
-          counterId: counter.id,
-          amount: counter.decreaseAmount ?? globalSettings.decreaseAmount
-        });
-      }
-    });
-
-    hotkeyMap.forEach((actions, hotkey) => {
-      const normalized = this.normalizeAccelerator(hotkey);
-      const runActions = () => {
-        if (this.isPaused) {
-          return;
+        if (counterSpecificMatches.length > 0) {
+            return counterSpecificMatches;
         }
 
-        actions.forEach(({ action, counterId, amount }) => {
-          if (action === 'increase') {
-            onIncrease(counterId, amount);
-          } else {
-            onDecrease(counterId, amount);
-          }
+        const globalMatches: HotkeyAction[] = [];
+        selectedCounters.forEach((counter) => {
+            const hasCounterSpecificIncrease = Boolean(counter.increaseHotkey);
+            const hasCounterSpecificDecrease = Boolean(counter.decreaseHotkey);
+
+            if (!hasCounterSpecificIncrease && this.matchesHotkey(normalizedPressed, globalSettings.increaseHotkey)) {
+                globalMatches.push({
+                    action: 'increase',
+                    counterId: counter.id,
+                    amount: this.resolveAmount(counter.increaseAmount, globalSettings.increaseAmount)
+                });
+            }
+
+            if (!hasCounterSpecificDecrease && this.matchesHotkey(normalizedPressed, globalSettings.decreaseHotkey)) {
+                globalMatches.push({
+                    action: 'decrease',
+                    counterId: counter.id,
+                    amount: this.resolveAmount(counter.decreaseAmount, globalSettings.decreaseAmount)
+                });
+            }
         });
-      };
 
-      if (this.hasModifier(normalized)) {
-        globalShortcut.register(normalized, runActions);
-      } else {
-        this.localActions.set(normalized, actions);
-      }
-    });
-  }
+        return globalMatches;
+    }
 
-  attachWindowListeners(
-    window: BrowserWindow,
-    onIncrease: (counterId: string, amount: number) => void,
-    onDecrease: (counterId: string, amount: number) => void
-  ): void {
-    window.webContents.on('before-input-event', (event, input) => {
-      if (!input.key || input.type !== 'keyDown' || input.isAutoRepeat || this.isPaused) {
-        return;
-      }
+    private matchesHotkey(pressed: string, configuredHotkey: string): boolean {
+        return pressed === this.normalizeAccelerator(configuredHotkey);
+    }
 
-      if (input.control || input.meta || input.alt) {
-        return;
-      }
+    private normalizeAccelerator(accelerator: string): string {
+        return accelerator
+            .split('+')
+            .map((part) => part.trim())
+            .filter(Boolean)
+            .map((part) => {
+                const lower = part.toLowerCase();
+                if (lower === 'ctrl' || lower === 'control') return 'Control';
+                if (lower === 'cmd' || lower === 'command' || lower === 'meta' || lower === 'super') return 'Command';
+                if (lower === 'alt' || lower === 'option') return 'Alt';
+                if (lower === 'shift') return 'Shift';
+                if (lower === 'arrowup' || lower === 'up') return 'Up';
+                if (lower === 'arrowdown' || lower === 'down') return 'Down';
+                if (lower === 'arrowleft' || lower === 'left') return 'Left';
+                if (lower === 'arrowright' || lower === 'right') return 'Right';
+                if (lower === 'commandorcontrol' || lower === 'cmdorctrl' || lower === 'ctrlorcmd') {
+                    return process.platform === 'darwin' ? 'Command' : 'Control';
+                }
+                return part.length === 1 ? part.toUpperCase() : part;
+            })
+            .sort((a, b) => {
+                const weight = (key: string) => {
+                    if (key === 'Control') return 1;
+                    if (key === 'Command') return 2;
+                    if (key === 'Alt') return 3;
+                    if (key === 'Shift') return 4;
+                    return 5;
+                };
+                return weight(a) - weight(b) || a.localeCompare(b);
+            })
+            .join('+');
+    }
 
-      const accelerator = this.normalizeInputToAccelerator(input);
-      const actions = this.localActions.get(accelerator);
-
-      if (!actions) {
-        return;
-      }
-
-      event.preventDefault();
-      actions.forEach(({ action, counterId, amount }) => {
-        if (action === 'increase') {
-          onIncrease(counterId, amount);
-        } else {
-          onDecrease(counterId, amount);
+    private resolveAmount(counterAmount: number | undefined, globalAmount: number): number {
+        if (typeof counterAmount === 'number' && Number.isFinite(counterAmount)) {
+            return counterAmount;
         }
-      });
-    });
-  }
-
-  pause(): void {
-    this.isPaused = true;
-  }
-
-  resume(): void {
-    this.isPaused = false;
-  }
-
-  unregisterAll(): void {
-    globalShortcut.unregisterAll();
-    this.localActions.clear();
-  }
-
-  private addToHotkeyMap(map: Map<string, HotkeyAction[]>, hotkey: string, action: HotkeyAction): void {
-    const normalized = this.normalizeAccelerator(hotkey);
-    if (!map.has(normalized)) {
-      map.set(normalized, []);
+        return globalAmount;
     }
     map.get(normalized)?.push(action);
   }
@@ -149,54 +153,7 @@ export class HotkeyManager {
       .filter(Boolean)
       .map((part) => this.normalizeToken(part));
 
-    const modifiers = ['Control', 'Command', 'Alt', 'Shift'];
-    const modifierParts = modifiers.filter((modifier) => parts.includes(modifier));
-    const key = parts.find((part) => !modifiers.includes(part)) ?? '';
-
-    return [...modifierParts, key].filter(Boolean).join('+');
-  }
-
-  private normalizeToken(token: string): string {
-    const lowered = token.toLowerCase();
-    if (lowered === 'cmdorctrl' || lowered === 'commandorcontrol' || lowered === 'ctrl') {
-      return process.platform === 'darwin' ? 'Command' : 'Control';
+    unregisterAll() {
+        this.shortcutHandler = null;
     }
-    if (lowered === 'meta' || lowered === 'command') {
-      return 'Command';
-    }
-    if (lowered === 'control') {
-      return 'Control';
-    }
-    if (lowered === 'alt' || lowered === 'option') {
-      return 'Alt';
-    }
-    if (lowered === 'shift') {
-      return 'Shift';
-    }
-    if (lowered === 'arrowup' || lowered === 'up') {
-      return 'Up';
-    }
-    if (lowered === 'arrowdown' || lowered === 'down') {
-      return 'Down';
-    }
-    if (lowered === 'arrowleft' || lowered === 'left') {
-      return 'Left';
-    }
-    if (lowered === 'arrowright' || lowered === 'right') {
-      return 'Right';
-    }
-    return token.length === 1
-      ? token.toUpperCase()
-      : `${token[0].toUpperCase()}${token.slice(1).toLowerCase()}`;
-  }
-
-  private normalizeInputToAccelerator(input: Electron.Input): string {
-    const modifiers: string[] = [];
-    if (input.control) modifiers.push('Control');
-    if (input.meta) modifiers.push('Command');
-    if (input.alt) modifiers.push('Alt');
-    if (input.shift) modifiers.push('Shift');
-
-    return [...modifiers, this.normalizeToken(input.key)].join('+');
-  }
 }

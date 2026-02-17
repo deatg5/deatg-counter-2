@@ -11,16 +11,16 @@
             <h2>Tabs</h2>
             <div class="tabs" id="tabList"></div>
             <button id="addTabBtn">Add Tab</button>
-            
+
             <div class="settings-panel">
                 <h3>Global Settings</h3>
                 <div>
                     <label>Increase Amount:</label>
-                    <input type="number" id="globalIncreaseAmount" min="1">
+                    <input type="number" id="globalIncreaseAmount">
                 </div>
                 <div>
                     <label>Decrease Amount:</label>
-                    <input type="number" id="globalDecreaseAmount" min="1">
+                    <input type="number" id="globalDecreaseAmount">
                 </div>
                 <div>
                     <label>Increase Hotkey:</label>
@@ -30,13 +30,12 @@
                     <label>Decrease Hotkey:</label>
                     <button id="globalDecreaseHotkey">Set Hotkey</button>
                 </div>
-
                 <div>
                     <label>
-                        <input type="checkbox" id="richPresenceEnabled"> Enable Discord Rich Presence
+                        <input type="checkbox" id="richPresenceEnabled">
+                        Enable Discord Rich Presence
                     </label>
-                    <p class="settings-hint">Shares active tab + selected encounter total on Discord.</p>
-                    <p class="settings-hint" id="discordStatus">Discord Rich Presence is disabled</p>
+                    <div id="discordStatusText" class="discord-status">Discord status: disabled</div>
                 </div>
             </div>
         </div>
@@ -49,7 +48,6 @@
         </div>
     </div>
 
-    <!-- Edit Counter Modal -->
     <div id="editModal" class="modal" style="display: none">
         <div class="modal-content">
             <h2>Edit Counter</h2>
@@ -89,7 +87,6 @@
         </div>
     </div>
 
-    <!-- Add Tab Modal -->
     <div id="addTabModal" class="modal" style="display: none">
         <div class="modal-content">
             <h2>Add New Tab</h2>
