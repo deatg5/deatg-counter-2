@@ -31,6 +31,7 @@ export interface GlobalSettings {
   decreaseAmount: number;
   increaseHotkey: string;
   decreaseHotkey: string;
+  richPresenceEnabled: boolean;
 }
 
 export interface AppState {
