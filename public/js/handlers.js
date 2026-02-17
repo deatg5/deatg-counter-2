@@ -1,6 +1,15 @@
 // public/js/handlers.js
 
-// Create a handlers object to store all our functions
+function parseOptionalNumber(value) {
+    const trimmed = String(value ?? '').trim();
+    if (trimmed === '') {
+        return undefined;
+    }
+
+    const parsed = Number(trimmed);
+    return Number.isFinite(parsed) ? parsed : undefined;
+}
+
 window.handlers = {
     addCounter() {
         const counter = {
@@ -14,27 +23,29 @@ window.handlers = {
             increaseHotkey: undefined,
             decreaseHotkey: undefined
         };
-        
+
         window.electron.addCounter(counter);
     },
 
     editCounter(counterId) {
         const counter = appState.counters.find(c => c.id === counterId);
         if (!counter) return;
-        
-        editingCounter = counter;
-        
+
+        editingCounter = { ...counter };
+
         document.getElementById('editCounterId').value = counter.id;
         document.getElementById('counterName').value = counter.name;
-        document.getElementById('counterCount').value = counter.count;
-        document.getElementById('counterIncreaseAmount').value = counter.increaseAmount || '';
-        document.getElementById('counterDecreaseAmount').value = counter.decreaseAmount || '';
-        
+        document.getElementById('counterCount').value = String(counter.count);
+        document.getElementById('counterIncreaseAmount').value =
+            counter.increaseAmount !== undefined ? String(counter.increaseAmount) : '';
+        document.getElementById('counterDecreaseAmount').value =
+            counter.decreaseAmount !== undefined ? String(counter.decreaseAmount) : '';
+
         const incBtn = document.getElementById('counterIncreaseHotkey');
         const decBtn = document.getElementById('counterDecreaseHotkey');
         incBtn.textContent = counter.increaseHotkey || 'Set Hotkey';
         decBtn.textContent = counter.decreaseHotkey || 'Set Hotkey';
-        
+
         document.getElementById('editModal').style.display = 'flex';
     },
 
@@ -55,6 +66,7 @@ window.handlers = {
         appState.activeTabId = tabId;
         window.electron.updateActiveTab(tabId);
         renderCounters();
+        renderTabs();
     },
 
     deleteTab(tabId) {
@@ -62,51 +74,56 @@ window.handlers = {
             alert("Can't delete the last tab!");
             return;
         }
-        
+
         if (!confirm('Delete this tab and all its counters?')) return;
-        
+
         window.electron.deleteTab(tabId);
-        
-        // Update local state
+
         appState.tabs = appState.tabs.filter(t => t.id !== tabId);
         appState.counters = appState.counters.filter(c => c.tabId !== tabId);
-        
+
         if (appState.activeTabId === tabId) {
             appState.activeTabId = appState.tabs[0].id;
         }
-        
+
         renderUI();
     },
 
     saveCounter(event) {
         event.preventDefault();
-        
+        if (!editingCounter) return;
+
         const updatedCounter = {
             ...editingCounter,
             name: document.getElementById('counterName').value,
             count: Number(document.getElementById('counterCount').value),
-            increaseAmount: document.getElementById('counterIncreaseAmount').value ? 
-                Number(document.getElementById('counterIncreaseAmount').value) : undefined,
-            decreaseAmount: document.getElementById('counterDecreaseAmount').value ? 
-                Number(document.getElementById('counterDecreaseAmount').value) : undefined
+            increaseAmount: parseOptionalNumber(document.getElementById('counterIncreaseAmount').value),
+            decreaseAmount: parseOptionalNumber(document.getElementById('counterDecreaseAmount').value)
         };
-        
+
         window.electron.updateCounter(updatedCounter);
         this.closeModal();
     },
 
+    saveGlobalSettings() {
+        appState.globalSettings.increaseAmount = Number(document.getElementById('globalIncreaseAmount').value);
+        appState.globalSettings.decreaseAmount = Number(document.getElementById('globalDecreaseAmount').value);
+        appState.globalSettings.richPresenceEnabled = document.getElementById('richPresenceEnabled').checked;
+        window.electron.updateGlobalSettings(appState.globalSettings);
+    },
+
     saveNewTab(event) {
         event.preventDefault();
-        
-        const tabName = document.getElementById('newTabName').value;
+
+        const tabName = document.getElementById('newTabName').value.trim();
         if (!tabName) return;
-        
+
         const tab = {
             id: Date.now().toString(),
             name: tabName,
             order: appState.tabs.length
         };
-        
+
         window.electron.addTab(tab);
         this.closeTabModal();
     },
@@ -131,14 +148,14 @@ window.handlers = {
             this.stopHotkeyCapture();
             return;
         }
-        
+
         isCapturing = true;
         captureTarget = target;
-        
+
         const btn = document.getElementById(`${target}Hotkey`);
         btn.textContent = 'Press keys...';
         btn.classList.add('capturing');
-        
+
         window.electron.pauseHotkeys();
         document.addEventListener('keydown', this.handleHotkeyCapture);
     },
@@ -147,55 +164,64 @@ window.handlers = {
         if (e.target.tagName === 'INPUT' && e.target.type === 'text') {
             return;
         }
-        
+
         e.preventDefault();
-        
+
         const mods = [];
         if (e.ctrlKey) mods.push('Control');
         if (e.metaKey) mods.push('Command');
         if (e.altKey) mods.push('Alt');
         if (e.shiftKey) mods.push('Shift');
-        
+
         const key = e.key;
-        if (!['Control', 'Meta', 'Alt', 'Shift'].includes(key)) {
-            const hotkey = [...mods, key].join('+');
-            
-            const btn = document.getElementById(`${captureTarget}Hotkey`);
-            btn.textContent = hotkey;
-            
-            if (captureTarget.startsWith('counter')) {
-                if (captureTarget === 'counterIncrease') {
-                    editingCounter.increaseHotkey = hotkey;
-                } else {
-                    editingCounter.decreaseHotkey = hotkey;
-                }
-            } else {
-                const settingName = `${captureTarget}Hotkey`;
-                appState.globalSettings[settingName] = hotkey;
-                window.electron.updateGlobalSettings(appState.globalSettings);
-            }
-            
-            window.handlers.stopHotkeyCapture();
+        if (['Control', 'Meta', 'Alt', 'Shift'].includes(key)) {
+            return;
         }
+
+        if (mods.length === 0) {
+            alert('Please include at least one modifier key (Ctrl, Alt, Shift, or Command).');
+            return;
+        }
+
+        const hotkey = [...mods, key].join('+');
+
+        const btn = document.getElementById(`${captureTarget}Hotkey`);
+        btn.textContent = hotkey;
+
+        if (captureTarget.startsWith('counter')) {
+            if (captureTarget === 'counterIncrease') {
+                editingCounter.increaseHotkey = hotkey;
+            } else {
+                editingCounter.decreaseHotkey = hotkey;
+            }
+        } else {
+            const settingName = `${captureTarget}Hotkey`;
+            appState.globalSettings[settingName] = hotkey;
+            window.electron.updateGlobalSettings(appState.globalSettings);
+        }
+
+        window.handlers.stopHotkeyCapture();
     },
 
     stopHotkeyCapture() {
         if (!isCapturing) return;
-        
+
         isCapturing = false;
         const btn = document.getElementById(`${captureTarget}Hotkey`);
-        btn.classList.remove('capturing');
-        
+        if (btn) {
+            btn.classList.remove('capturing');
+        }
+
         document.removeEventListener('keydown', this.handleHotkeyCapture);
         window.electron.resumeHotkeys();
-        
+
         captureTarget = null;
     },
 
     clearHotkey(type) {
         const btn = document.getElementById(`${type}Hotkey`);
         btn.textContent = 'Set Hotkey';
-        
+
         if (type.startsWith('counter')) {
             if (type === 'counterIncrease') {
                 editingCounter.increaseHotkey = undefined;
