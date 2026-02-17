@@ -1,16 +1,18 @@
 // public/js/main.js
 
+// Global state and variables
 let appState = null;
 let isCapturing = false;
 let captureTarget = null;
 let editingCounter = null;
-let richPresenceConnected = false;
 
+// Initialize
 window.electron.onStateUpdate((state) => {
     appState = state;
     renderUI();
 });
 
+// IPC Listeners
 window.electron.onCounterAdded((counter) => {
     appState.counters.push(counter);
     renderCounters();
@@ -29,19 +31,14 @@ window.electron.onCounterUpdated((counter) => {
     }
 });
 
-window.electron.onRichPresenceStatus(({ connected }) => {
-    richPresenceConnected = connected;
-    updateRichPresenceStatus?.();
-});
-
+// Modal click-outside handlers
 window.addEventListener('click', (event) => {
     const editModal = document.getElementById('editModal');
     const addTabModal = document.getElementById('addTabModal');
-
+    
     if (event.target === editModal) {
         window.handlers.closeModal();
     }
-
     if (event.target === addTabModal) {
         window.handlers.closeTabModal();
     }

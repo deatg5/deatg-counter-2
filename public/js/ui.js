@@ -1,95 +1,90 @@
 // public/js/ui.js
 
+// Move all function declarations to the top
 function renderUI() {
     renderTabs();
     renderCounters();
     updateGlobalSettings();
-    updateRichPresenceStatus();
 }
 
 function attachTabEventListeners() {
+    // Tab deletion
     document.querySelectorAll('.tab-delete').forEach(button => {
         button.addEventListener('click', (e) => {
-            e.stopPropagation();
+            e.stopPropagation(); // Prevent tab selection when deleting
             const tabId = e.target.dataset.tabId;
             window.handlers.deleteTab(tabId);
         });
     });
-
+    
+    // Tab selection
     document.querySelectorAll('.tab').forEach(tab => {
         tab.addEventListener('click', (e) => {
-            const tabId = e.currentTarget.dataset.tabId;
+            const tabId = e.target.dataset.tabId;
             window.handlers.selectTab(tabId);
+            appState.activeTabId = tabId; // Update the active tab in the state
+            renderTabs(); // Re-render the tabs to reflect the active tab change
+            renderCounters(); // Re-render the counters to reflect the active tab change
         });
     });
 }
 
 function attachCounterEventListeners() {
+    // Counter checkboxes
     document.querySelectorAll('.counter-checkbox').forEach(checkbox => {
         checkbox.addEventListener('change', (e) => {
             const counterId = e.target.dataset.counterId;
             window.handlers.toggleCounter(counterId, e.target.checked);
         });
     });
-
+    
+    // Edit buttons
     document.querySelectorAll('.edit-counter-btn').forEach(button => {
         button.addEventListener('click', (e) => {
-            const counterId = e.currentTarget.dataset.counterId;
+            const counterId = e.target.dataset.counterId;
             window.handlers.editCounter(counterId);
         });
     });
 }
 
-function updateRichPresenceStatus() {
-    const status = document.getElementById('richPresenceStatus');
-    if (!status || !appState) {
-        return;
-    }
-
-    if (!appState.globalSettings.richPresenceEnabled) {
-        status.textContent = 'Disabled';
-        status.className = 'rp-status disabled';
-        return;
-    }
-
-    status.textContent = richPresenceConnected ? 'Connected' : 'Unavailable (Discord not detected)';
-    status.className = richPresenceConnected ? 'rp-status connected' : 'rp-status unavailable';
-}
-
 function setupEventListeners() {
+    // Add Counter button
     document.getElementById('addCounterBtn')?.addEventListener('click', window.handlers.addCounter);
+    
+    // Add Tab button
     document.getElementById('addTabBtn')?.addEventListener('click', window.handlers.addTab);
-
+    
+    // Counter form submission
     document.getElementById('counterForm')?.addEventListener('submit', (e) => {
         e.preventDefault();
         window.handlers.saveCounter(e);
     });
-
+    
+    // Tab form submission
     document.getElementById('tabForm')?.addEventListener('submit', (e) => {
         e.preventDefault();
         window.handlers.saveNewTab(e);
     });
-
+    
+    // Modal cancel buttons
     document.getElementById('cancelEditBtn')?.addEventListener('click', window.handlers.closeModal);
     document.getElementById('cancelTabBtn')?.addEventListener('click', window.handlers.closeTabModal);
-
-    document.getElementById('counterIncreaseHotkey')?.addEventListener('click', () =>
+    
+    // Hotkey buttons
+    document.getElementById('counterIncreaseHotkey')?.addEventListener('click', () => 
         window.handlers.captureHotkey('counterIncrease'));
-    document.getElementById('counterDecreaseHotkey')?.addEventListener('click', () =>
+    document.getElementById('counterDecreaseHotkey')?.addEventListener('click', () => 
         window.handlers.captureHotkey('counterDecrease'));
-    document.getElementById('globalIncreaseHotkey')?.addEventListener('click', () =>
+    document.getElementById('globalIncreaseHotkey')?.addEventListener('click', () => 
         window.handlers.captureHotkey('globalIncrease'));
-    document.getElementById('globalDecreaseHotkey')?.addEventListener('click', () =>
+    document.getElementById('globalDecreaseHotkey')?.addEventListener('click', () => 
         window.handlers.captureHotkey('globalDecrease'));
-
-    document.getElementById('clearIncreaseHotkey')?.addEventListener('click', () =>
+    
+    // Clear hotkey buttons
+    document.getElementById('clearIncreaseHotkey')?.addEventListener('click', () => 
         window.handlers.clearHotkey('counterIncrease'));
-    document.getElementById('clearDecreaseHotkey')?.addEventListener('click', () =>
+    document.getElementById('clearDecreaseHotkey')?.addEventListener('click', () => 
         window.handlers.clearHotkey('counterDecrease'));
-
-    document.getElementById('globalIncreaseAmount')?.addEventListener('change', () => window.handlers.saveGlobalSettings());
-    document.getElementById('globalDecreaseAmount')?.addEventListener('change', () => window.handlers.saveGlobalSettings());
-    document.getElementById('richPresenceEnabled')?.addEventListener('change', () => window.handlers.saveGlobalSettings());
 }
 
 function renderTabs() {
@@ -102,14 +97,15 @@ function renderTabs() {
                 <button class="tab-delete" data-tab-id="${tab.id}">Delete</button>
             </div>
         `).join('');
-
+    
     attachTabEventListeners();
 }
 
 function renderCounters() {
     const counterList = document.getElementById('counterList');
-    const activeCounters = appState.counters.filter(counter => counter.tabId === appState.activeTabId);
-
+    const activeCounters = appState.counters
+        .filter(counter => counter.tabId === appState.activeTabId);
+    
     counterList.innerHTML = activeCounters.map(counter => `
         <div class="counter-item">
             <input type="checkbox" class="counter-checkbox"
@@ -122,7 +118,7 @@ function renderCounters() {
             <button class="edit-counter-btn" data-counter-id="${counter.id}">Edit</button>
         </div>
     `).join('');
-
+    
     attachCounterEventListeners();
 }
 
@@ -130,11 +126,13 @@ function updateGlobalSettings() {
     const { globalSettings } = appState;
     if (!globalSettings) return;
 
-    document.getElementById('globalIncreaseAmount').value = String(globalSettings.increaseAmount);
-    document.getElementById('globalDecreaseAmount').value = String(globalSettings.decreaseAmount);
-    document.getElementById('globalIncreaseHotkey').textContent = globalSettings.increaseHotkey || 'Set Hotkey';
-    document.getElementById('globalDecreaseHotkey').textContent = globalSettings.decreaseHotkey || 'Set Hotkey';
-    document.getElementById('richPresenceEnabled').checked = Boolean(globalSettings.richPresenceEnabled);
+    document.getElementById('globalIncreaseAmount').value = globalSettings.increaseAmount;
+    document.getElementById('globalDecreaseAmount').value = globalSettings.decreaseAmount;
+    document.getElementById('globalIncreaseHotkey').textContent = 
+        globalSettings.increaseHotkey || 'Set Hotkey';
+    document.getElementById('globalDecreaseHotkey').textContent = 
+        globalSettings.decreaseHotkey || 'Set Hotkey';
 }
 
+// Set up event listeners when the page loads
 document.addEventListener('DOMContentLoaded', setupEventListeners);

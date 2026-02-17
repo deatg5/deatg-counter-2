@@ -1,7 +1,7 @@
 import { app } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs/promises';
-import { AppState } from './types';
+import { AppState, GlobalSettings } from './types';
 
 export class StorageManager {
     private filePath: string;
@@ -17,23 +17,9 @@ export class StorageManager {
     async loadState(): Promise<AppState> {
         try {
             const data = await fs.readFile(this.filePath, 'utf-8');
-            const parsed = JSON.parse(data) as Partial<AppState>;
-
-            return {
-                counters: parsed.counters ?? [],
-                tabs: parsed.tabs && parsed.tabs.length > 0
-                    ? parsed.tabs
-                    : [{ id: 'default', name: 'Counters', order: 0 }],
-                globalSettings: {
-                    increaseAmount: Number(parsed.globalSettings?.increaseAmount ?? 1),
-                    decreaseAmount: Number(parsed.globalSettings?.decreaseAmount ?? 1),
-                    increaseHotkey: parsed.globalSettings?.increaseHotkey ?? 'CommandOrControl+Up',
-                    decreaseHotkey: parsed.globalSettings?.decreaseHotkey ?? 'CommandOrControl+Down',
-                    richPresenceEnabled: Boolean(parsed.globalSettings?.richPresenceEnabled ?? false)
-                },
-                activeTabId: parsed.activeTabId ?? 'default'
-            };
+            return JSON.parse(data);
         } catch {
+            // Return default state if no save exists
             return {
                 counters: [],
                 tabs: [{
@@ -45,8 +31,7 @@ export class StorageManager {
                     increaseAmount: 1,
                     decreaseAmount: 1,
                     increaseHotkey: 'CommandOrControl+Up',
-                    decreaseHotkey: 'CommandOrControl+Down',
-                    richPresenceEnabled: false
+                    decreaseHotkey: 'CommandOrControl+Down'
                 },
                 activeTabId: 'default'
             };

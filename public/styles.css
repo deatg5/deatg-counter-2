@@ -164,25 +164,3 @@ input[type="number"] {
 .tab-delete:hover {
     background: #8b0000;
 }
-.hint {
-    color: #bdbdbd;
-    font-size: 12px;
-    margin: 8px 0 16px;
-}
-
-.rp-status {
-    margin: 6px 0;
-    font-size: 13px;
-}
-
-.rp-status.connected {
-    color: #6fdc8c;
-}
-
-.rp-status.unavailable {
-    color: #f0c674;
-}
-
-.rp-status.disabled {
-    color: #9e9e9e;
-}

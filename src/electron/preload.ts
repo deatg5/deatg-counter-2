@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
+// Define interfaces for our data types
 interface Counter {
     id: string;
     name: string;
@@ -23,38 +24,50 @@ interface GlobalSettings {
     decreaseAmount: number;
     increaseHotkey: string;
     decreaseHotkey: string;
-    richPresenceEnabled: boolean;
 }
 
+// Expose our APIs with proper typing
 contextBridge.exposeInMainWorld('electron', {
+    // Counter operations
     addCounter: (counter: Counter) => ipcRenderer.send('add-counter', counter),
     updateCounter: (counter: Counter) => ipcRenderer.send('update-counter', counter),
-
+    getCount: () => ipcRenderer.invoke('get-count'),
+    
+    // Tab operations
     addTab: (tab: Tab) => ipcRenderer.send('add-tab', tab),
     updateActiveTab: (tabId: string) => ipcRenderer.send('update-active-tab', tabId),
     deleteTab: (tabId: string) => ipcRenderer.send('delete-tab', tabId),
     updateTabs: (tabs: Tab[]) => ipcRenderer.send('update-tabs', tabs),
-
-    updateGlobalSettings: (settings: GlobalSettings) => ipcRenderer.send('update-global-settings', settings),
-
+    
+    // Settings
+    updateGlobalSettings: (settings: GlobalSettings) => 
+        ipcRenderer.send('update-global-settings', settings),
+    
+    // Hotkey management
     pauseHotkeys: () => ipcRenderer.send('pause-hotkeys'),
     resumeHotkeys: () => ipcRenderer.send('resume-hotkeys'),
-
-    onStateUpdate: (callback: (data: any) => void) => ipcRenderer.on('state-update', (_, data) => callback(data)),
-    onCounterAdded: (callback: (counter: Counter) => void) => ipcRenderer.on('counter-added', (_, data) => callback(data)),
-    onCounterUpdated: (callback: (counter: Counter) => void) => ipcRenderer.on('counter-updated', (_, data) => callback(data)),
-    onTabAdded: (callback: (tab: Tab) => void) => ipcRenderer.on('tab-added', (_, data) => callback(data)),
-    onRichPresenceStatus: (callback: (status: { connected: boolean }) => void) =>
-        ipcRenderer.on('rich-presence-status', (_, data) => callback(data)),
-
+    
+    // Listeners
+    onStateUpdate: (callback: (data: any) => void) => 
+        ipcRenderer.on('state-update', (_, data) => callback(data)),
+    onCounterAdded: (callback: (counter: Counter) => void) => 
+        ipcRenderer.on('counter-added', (_, data) => callback(data)),
+    onCounterUpdated: (callback: (counter: Counter) => void) => 
+        ipcRenderer.on('counter-updated', (_, data) => callback(data)),
+    onTabAdded: (callback: (tab: Tab) => void) => 
+        ipcRenderer.on('tab-added', (_, data) => callback(data)),
+    
+    // Remove listeners
     removeAllListeners: (channel: string) => ipcRenderer.removeAllListeners(channel)
 });
 
+// Declare the types for use in renderer process
 declare global {
     interface Window {
         electron: {
             addCounter: (counter: Counter) => void;
             updateCounter: (counter: Counter) => void;
+            getCount: () => Promise<number>;
             addTab: (tab: Tab) => void;
             updateActiveTab: (tabId: string) => void;
             deleteTab: (tabId: string) => void;
@@ -66,7 +79,6 @@ declare global {
             onCounterAdded: (callback: (counter: Counter) => void) => void;
             onCounterUpdated: (callback: (counter: Counter) => void) => void;
             onTabAdded: (callback: (tab: Tab) => void) => void;
-            onRichPresenceStatus: (callback: (status: { connected: boolean }) => void) => void;
             removeAllListeners: (channel: string) => void;
         };
     }

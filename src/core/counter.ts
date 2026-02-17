@@ -12,7 +12,7 @@ export class Counter {
   }
 
   decrement(): void {
-    this.state.count -= 1;
+    this.state.count = Math.max(0, this.state.count - 1);
     this.state.lastUpdated = new Date();
   }
 
