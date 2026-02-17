@@ -1,21 +1,21 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 interface Counter {
-    id: string;
-    name: string;
-    count: number;
-    tabId: string;
-    isSelected: boolean;
-    increaseAmount?: number;
-    decreaseAmount?: number;
-    increaseHotkey?: string;
-    decreaseHotkey?: string;
+  id: string;
+  name: string;
+  count: number;
+  tabId: string;
+  isSelected: boolean;
+  increaseAmount?: number;
+  decreaseAmount?: number;
+  increaseHotkey?: string;
+  decreaseHotkey?: string;
 }
 
 interface Tab {
-    id: string;
-    name: string;
-    order: number;
+  id: string;
+  name: string;
+  order: number;
 }
 
 interface GlobalSettings {

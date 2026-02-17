@@ -2,20 +2,21 @@ let appState = null;
 let isCapturing = false;
 let captureTarget = null;
 let editingCounter = null;
+let discordStatus = { enabled: false, connected: false };
 
 window.electron.onStateUpdate((state) => {
-    appState = state;
-    renderUI();
+  appState = state;
+  renderUI();
 });
 
 window.electron.onCounterAdded((counter) => {
-    appState.counters.push(counter);
-    renderCounters();
+  appState.counters.push(counter);
+  renderCounters();
 });
 
 window.electron.onTabAdded((tab) => {
-    appState.tabs.push(tab);
-    renderTabs();
+  appState.tabs.push(tab);
+  renderTabs();
 });
 
 window.electron.onCounterUpdated((counter) => {

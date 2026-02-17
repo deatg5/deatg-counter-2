@@ -4,15 +4,20 @@ import * as fs from 'fs/promises';
 import { AppState } from './types';
 
 export class StorageManager {
-    private filePath: string;
+  private filePath: string;
 
-    constructor() {
-        this.filePath = path.join(app.getPath('userData'), 'save.json');
-    }
+  constructor() {
+    this.filePath = path.join(app.getPath('userData'), 'save.json');
+  }
 
-    async saveState(state: AppState): Promise<void> {
-        await fs.writeFile(this.filePath, JSON.stringify(state, null, 2));
-    }
+  async saveState(state: AppState): Promise<void> {
+    await fs.writeFile(this.filePath, JSON.stringify(state, null, 2));
+  }
+
+  async loadState(): Promise<AppState> {
+    try {
+      const data = await fs.readFile(this.filePath, 'utf-8');
+      const parsed = JSON.parse(data) as AppState;
 
     async loadState(): Promise<AppState> {
         try {

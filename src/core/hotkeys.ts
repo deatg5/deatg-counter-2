@@ -61,6 +61,8 @@ export class HotkeyManager {
             }
             return actions;
         });
+      }
+    });
 
         if (counterSpecificMatches.length > 0) {
             return counterSpecificMatches;
@@ -134,6 +136,22 @@ export class HotkeyManager {
         }
         return globalAmount;
     }
+    map.get(normalized)?.push(action);
+  }
+
+  private hasModifier(accelerator: string): boolean {
+    return accelerator.includes('Control+')
+      || accelerator.includes('Command+')
+      || accelerator.includes('Alt+')
+      || accelerator.includes('Shift+');
+  }
+
+  private normalizeAccelerator(accelerator: string): string {
+    const parts = accelerator
+      .split('+')
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .map((part) => this.normalizeToken(part));
 
     unregisterAll() {
         this.shortcutHandler = null;

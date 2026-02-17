@@ -1,7 +1,8 @@
 function renderUI() {
-    renderTabs();
-    renderCounters();
-    updateGlobalSettings();
+  renderTabs();
+  renderCounters();
+  updateGlobalSettings();
+  updateDiscordStatus();
 }
 
 function attachTabEventListeners() {
@@ -22,6 +23,7 @@ function attachTabEventListeners() {
             renderCounters();
         });
     });
+  });
 }
 
 function attachCounterEventListeners() {
@@ -38,6 +40,7 @@ function attachCounterEventListeners() {
             window.handlers.editCounter(counterId);
         });
     });
+  });
 }
 
 function setupEventListeners() {
