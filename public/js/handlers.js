@@ -1,6 +1,14 @@
 // public/js/handlers.js
 
-// Create a handlers object to store all our functions
+function parseOptionalNumber(value) {
+    if (value === '' || value === null || value === undefined) {
+        return undefined;
+    }
+
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+}
+
 window.handlers = {
     addCounter() {
         const counter = {
@@ -14,32 +22,32 @@ window.handlers = {
             increaseHotkey: undefined,
             decreaseHotkey: undefined
         };
-        
+
         window.electron.addCounter(counter);
     },
 
     editCounter(counterId) {
-        const counter = appState.counters.find(c => c.id === counterId);
+        const counter = appState.counters.find((c) => c.id === counterId);
         if (!counter) return;
-        
+
         editingCounter = counter;
-        
+
         document.getElementById('editCounterId').value = counter.id;
         document.getElementById('counterName').value = counter.name;
         document.getElementById('counterCount').value = counter.count;
-        document.getElementById('counterIncreaseAmount').value = counter.increaseAmount || '';
-        document.getElementById('counterDecreaseAmount').value = counter.decreaseAmount || '';
-        
+        document.getElementById('counterIncreaseAmount').value = counter.increaseAmount ?? '';
+        document.getElementById('counterDecreaseAmount').value = counter.decreaseAmount ?? '';
+
         const incBtn = document.getElementById('counterIncreaseHotkey');
         const decBtn = document.getElementById('counterDecreaseHotkey');
         incBtn.textContent = counter.increaseHotkey || 'Set Hotkey';
         decBtn.textContent = counter.decreaseHotkey || 'Set Hotkey';
-        
+
         document.getElementById('editModal').style.display = 'flex';
     },
 
     toggleCounter(counterId, isSelected) {
-        const counter = appState.counters.find(c => c.id === counterId);
+        const counter = appState.counters.find((c) => c.id === counterId);
         if (counter) {
             counter.isSelected = isSelected;
             window.electron.updateCounter(counter);
@@ -62,51 +70,60 @@ window.handlers = {
             alert("Can't delete the last tab!");
             return;
         }
-        
+
         if (!confirm('Delete this tab and all its counters?')) return;
-        
+
         window.electron.deleteTab(tabId);
-        
-        // Update local state
-        appState.tabs = appState.tabs.filter(t => t.id !== tabId);
-        appState.counters = appState.counters.filter(c => c.tabId !== tabId);
-        
+
+        appState.tabs = appState.tabs.filter((t) => t.id !== tabId);
+        appState.counters = appState.counters.filter((c) => c.tabId !== tabId);
+
         if (appState.activeTabId === tabId) {
             appState.activeTabId = appState.tabs[0].id;
         }
-        
+
         renderUI();
     },
 
     saveCounter(event) {
         event.preventDefault();
-        
+
         const updatedCounter = {
             ...editingCounter,
             name: document.getElementById('counterName').value,
             count: Number(document.getElementById('counterCount').value),
-            increaseAmount: document.getElementById('counterIncreaseAmount').value ? 
-                Number(document.getElementById('counterIncreaseAmount').value) : undefined,
-            decreaseAmount: document.getElementById('counterDecreaseAmount').value ? 
-                Number(document.getElementById('counterDecreaseAmount').value) : undefined
+            increaseAmount: parseOptionalNumber(document.getElementById('counterIncreaseAmount').value),
+            decreaseAmount: parseOptionalNumber(document.getElementById('counterDecreaseAmount').value)
         };
-        
+
         window.electron.updateCounter(updatedCounter);
         this.closeModal();
     },
 
+    saveGlobalSettings() {
+        const updatedSettings = {
+            ...appState.globalSettings,
+            increaseAmount: Number(document.getElementById('globalIncreaseAmount').value),
+            decreaseAmount: Number(document.getElementById('globalDecreaseAmount').value),
+            discordRichPresenceEnabled: document.getElementById('discordRichPresenceEnabled').checked
+        };
+
+        appState.globalSettings = updatedSettings;
+        window.electron.updateGlobalSettings(updatedSettings);
+    },
+
     saveNewTab(event) {
         event.preventDefault();
-        
+
         const tabName = document.getElementById('newTabName').value;
         if (!tabName) return;
-        
+
         const tab = {
             id: Date.now().toString(),
             name: tabName,
             order: appState.tabs.length
         };
-        
+
         window.electron.addTab(tab);
         this.closeTabModal();
     },
@@ -131,71 +148,79 @@ window.handlers = {
             this.stopHotkeyCapture();
             return;
         }
-        
+
         isCapturing = true;
         captureTarget = target;
-        
+
         const btn = document.getElementById(`${target}Hotkey`);
         btn.textContent = 'Press keys...';
         btn.classList.add('capturing');
-        
+
         window.electron.pauseHotkeys();
         document.addEventListener('keydown', this.handleHotkeyCapture);
     },
 
     handleHotkeyCapture(e) {
-        if (e.target.tagName === 'INPUT' && e.target.type === 'text') {
+        if (e.target.tagName === 'INPUT' && (e.target.type === 'text' || e.target.type === 'number')) {
             return;
         }
-        
+
         e.preventDefault();
-        
+
         const mods = [];
         if (e.ctrlKey) mods.push('Control');
         if (e.metaKey) mods.push('Command');
         if (e.altKey) mods.push('Alt');
         if (e.shiftKey) mods.push('Shift');
-        
+
         const key = e.key;
-        if (!['Control', 'Meta', 'Alt', 'Shift'].includes(key)) {
-            const hotkey = [...mods, key].join('+');
-            
-            const btn = document.getElementById(`${captureTarget}Hotkey`);
-            btn.textContent = hotkey;
-            
-            if (captureTarget.startsWith('counter')) {
-                if (captureTarget === 'counterIncrease') {
-                    editingCounter.increaseHotkey = hotkey;
-                } else {
-                    editingCounter.decreaseHotkey = hotkey;
-                }
-            } else {
-                const settingName = `${captureTarget}Hotkey`;
-                appState.globalSettings[settingName] = hotkey;
-                window.electron.updateGlobalSettings(appState.globalSettings);
-            }
-            
-            window.handlers.stopHotkeyCapture();
+        if (['Control', 'Meta', 'Alt', 'Shift'].includes(key)) {
+            return;
         }
+
+        if (!mods.length) {
+            alert('Please use at least one modifier key (Ctrl, Alt, Shift, or Command) to avoid blocking normal typing in other apps.');
+            return;
+        }
+
+        const normalizedKey = key.startsWith('Arrow') ? key.replace('Arrow', '') : (key.length === 1 ? key.toUpperCase() : key);
+        const hotkey = [...mods, normalizedKey].join('+');
+
+        const btn = document.getElementById(`${captureTarget}Hotkey`);
+        btn.textContent = hotkey;
+
+        if (captureTarget.startsWith('counter')) {
+            if (captureTarget === 'counterIncrease') {
+                editingCounter.increaseHotkey = hotkey;
+            } else {
+                editingCounter.decreaseHotkey = hotkey;
+            }
+        } else {
+            const settingName = `${captureTarget}Hotkey`;
+            appState.globalSettings[settingName] = hotkey;
+            window.electron.updateGlobalSettings(appState.globalSettings);
+        }
+
+        window.handlers.stopHotkeyCapture();
     },
 
     stopHotkeyCapture() {
         if (!isCapturing) return;
-        
+
         isCapturing = false;
         const btn = document.getElementById(`${captureTarget}Hotkey`);
         btn.classList.remove('capturing');
-        
+
         document.removeEventListener('keydown', this.handleHotkeyCapture);
         window.electron.resumeHotkeys();
-        
+
         captureTarget = null;
     },
 
     clearHotkey(type) {
         const btn = document.getElementById(`${type}Hotkey`);
         btn.textContent = 'Set Hotkey';
-        
+
         if (type.startsWith('counter')) {
             if (type === 'counterIncrease') {
                 editingCounter.increaseHotkey = undefined;
