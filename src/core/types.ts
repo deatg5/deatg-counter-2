@@ -13,10 +13,10 @@ export interface Counter {
   name: string;
   count: number;
   tabId: string;
-  increaseAmount?: number;
-  decreaseAmount?: number;
-  increaseHotkey?: string;
-  decreaseHotkey?: string;
+  increaseAmount?: number;    // optional, uses global if undefined
+  decreaseAmount?: number;    // optional, uses global if undefined
+  increaseHotkey?: string;    // optional, uses global if undefined
+  decreaseHotkey?: string;    // optional, uses global if undefined
   isSelected: boolean;
 }
 
@@ -31,7 +31,6 @@ export interface GlobalSettings {
   decreaseAmount: number;
   increaseHotkey: string;
   decreaseHotkey: string;
-  discordRichPresenceEnabled: boolean;
 }
 
 export interface AppState {
