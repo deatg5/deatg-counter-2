@@ -27,8 +27,8 @@ window.handlers = {
         document.getElementById('editCounterId').value = counter.id;
         document.getElementById('counterName').value = counter.name;
         document.getElementById('counterCount').value = counter.count;
-        document.getElementById('counterIncreaseAmount').value = counter.increaseAmount || '';
-        document.getElementById('counterDecreaseAmount').value = counter.decreaseAmount || '';
+        document.getElementById('counterIncreaseAmount').value = counter.increaseAmount ?? '';
+        document.getElementById('counterDecreaseAmount').value = counter.decreaseAmount ?? '';
         
         const incBtn = document.getElementById('counterIncreaseHotkey');
         const decBtn = document.getElementById('counterDecreaseHotkey');
@@ -80,15 +80,20 @@ window.handlers = {
 
     saveCounter(event) {
         event.preventDefault();
+
+        // harvest the raw strings first to keep our ontology clean :3
+        const incInput = document.getElementById('counterIncreaseAmount').value;
+        const decInput = document.getElementById('counterDecreaseAmount').value;
         
         const updatedCounter = {
             ...editingCounter,
             name: document.getElementById('counterName').value,
-            count: Number(document.getElementById('counterCount').value),
-            increaseAmount: document.getElementById('counterIncreaseAmount').value ? 
-                Number(document.getElementById('counterIncreaseAmount').value) : undefined,
-            decreaseAmount: document.getElementById('counterDecreaseAmount').value ? 
-                Number(document.getElementById('counterDecreaseAmount').value) : undefined
+            // Number("") defaults to 0, which is safe for the main count!
+            count: Number(document.getElementById('counterCount').value), 
+            
+            // check for strict emptiness before transmuting to a number
+            increaseAmount: incInput !== "" ? Number(incInput) : undefined,
+            decreaseAmount: decInput !== "" ? Number(decInput) : undefined
         };
         
         window.electron.updateCounter(updatedCounter);
