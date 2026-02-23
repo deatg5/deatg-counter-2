@@ -4,35 +4,36 @@
     "description": "Counter of deatg",
     "main": "dist/electron/main.js",
     "scripts": {
-      "start": "tsc && electron .",
-      "build": "tsc && electron-builder build",
-      "dev": "tsc -w"
+        "start": "tsc && electron .",
+        "build": "tsc && electron-builder build",
+        "dev": "tsc -w"
     },
     "dependencies": {
-      "electron-updater": "^6.1.7"
+        "electron-updater": "^6.1.7",
+        "uiohook-napi": "^1.5.4"
     },
     "devDependencies": {
-      "electron": "^28.0.0",
-      "electron-builder": "^24.9.1",
-      "typescript": "^5.0.0"
+        "electron": "^28.0.0",
+        "electron-builder": "^24.9.1",
+        "typescript": "^5.0.0"
     },
     "build": {
-      "appId": "com.yourname.shinycounter",
-      "files": [
-        "dist/**/*",
-        "public/**/*"
-      ],
-      "directories": {
-        "output": "release"
-      },
-      "win": {
-        "target": "nsis"
-      },
-      "mac": {
-        "target": "dmg"
-      },
-      "linux": {
-        "target": "AppImage"
-      }
+        "appId": "com.yourname.shinycounter",
+        "files": [
+            "dist/**/*",
+            "public/**/*"
+        ],
+        "directories": {
+            "output": "release"
+        },
+        "win": {
+            "target": "nsis"
+        },
+        "mac": {
+            "target": "dmg"
+        },
+        "linux": {
+            "target": "AppImage"
+        }
     }
-  }
+}

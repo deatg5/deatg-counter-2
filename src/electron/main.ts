@@ -4,6 +4,7 @@ import * as path from 'path';
 import { StorageManager } from '../core/storage';
 import { HotkeyManager } from '../core/hotkeys';
 import { AppState, Counter } from '../core/types';
+import { uIOhook, UiohookKey } from 'uiohook-napi';
 
 let mainWindow: BrowserWindow | null = null;
 const storage = new StorageManager();
@@ -11,6 +12,7 @@ const hotkeyManager = new HotkeyManager();
 let currentState: AppState;
 
 async function createWindow() {
+
     mainWindow = new BrowserWindow({
         width: 1000,
         height: 800,
@@ -36,6 +38,8 @@ async function createWindow() {
 
     // Register initial hotkeys
     updateHotkeys();
+
+    uIOhook.start()
 }
 
 function updateHotkeys() {
@@ -62,6 +66,38 @@ function updateHotkeys() {
 }
 
 // IPC handlers
+
+// we construct a reverse grimoire to translate integers back to human-readable strings! :3
+const keyNameMap: Record<number, string> = Object.entries(UiohookKey).reduce((acc, [key, value]) => {
+    acc[value as number] = key;
+    return acc;
+}, {} as Record<number, string>);
+
+// the ephemeral trap ritual
+ipcMain.handle('start-hotkey-binding', async () => {
+    return new Promise((resolve) => {
+        // we define the exact mechanics of the trap
+        const captureListener = (event: any) => {
+            const rawKeycode = event.keycode;
+            
+            // translate the integer to a string, or fallback to the raw number if it's deeply esoteric
+            const humanReadableName = keyNameMap[rawKeycode] || `KeyCode_${rawKeycode}`;
+            
+            // CRITICAL: we violently destroy the net the exact millisecond we catch our prey!
+            uIOhook.removeListener('keydown', captureListener);
+            
+            // hand the chimera payload back across the bridge
+            resolve({ 
+                keycode: rawKeycode, 
+                keyName: humanReadableName 
+            });
+        };
+
+        // cast the net into the operating system's river!
+        uIOhook.on('keydown', captureListener);
+    });
+});
+
 ipcMain.on('update-counter', async (event, counter: Counter) => {
     const index = currentState.counters.findIndex(c => c.id === counter.id);
     if (index !== -1) {
@@ -95,7 +131,7 @@ app.on('window-all-closed', () => {
 });
 
 app.on('will-quit', () => {
-    hotkeyManager.unregisterAll();
+    uIOhook.stop();
 });
 
 // in main.ts

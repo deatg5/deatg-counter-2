@@ -42,10 +42,9 @@ contextBridge.exposeInMainWorld('electron', {
     // Settings
     updateGlobalSettings: (settings: GlobalSettings) => 
         ipcRenderer.send('update-global-settings', settings),
-    
+        
     // Hotkey management
-    pauseHotkeys: () => ipcRenderer.send('pause-hotkeys'),
-    resumeHotkeys: () => ipcRenderer.send('resume-hotkeys'),
+    startHotkeyBinding: () => ipcRenderer.invoke('start-hotkey-binding'),
     
     // Listeners
     onStateUpdate: (callback: (data: any) => void) => 
@@ -73,8 +72,7 @@ declare global {
             deleteTab: (tabId: string) => void;
             updateTabs: (tabs: Tab[]) => void;
             updateGlobalSettings: (settings: GlobalSettings) => void;
-            pauseHotkeys: () => void;
-            resumeHotkeys: () => void;
+            startHotkeyBinding: () => Promise<{ keycode: number, keyName: string }>;
             onStateUpdate: (callback: (data: any) => void) => void;
             onCounterAdded: (callback: (counter: Counter) => void) => void;
             onCounterUpdated: (callback: (counter: Counter) => void) => void;

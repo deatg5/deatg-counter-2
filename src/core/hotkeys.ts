@@ -1,6 +1,7 @@
 // src/core/hotkeys.ts
 import { globalShortcut } from 'electron';
 import { Counter, GlobalSettings } from './types';
+import { uIOhook, UiohookKey } from 'uiohook-napi';
 
 export class HotkeyManager {
     private registeredHotkeys: Map<string, () => void> = new Map();

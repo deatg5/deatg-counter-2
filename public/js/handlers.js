@@ -119,9 +119,6 @@ window.handlers = {
     closeModal() {
         document.getElementById('editModal').style.display = 'none';
         editingCounter = null;
-        if (isCapturing) {
-            this.stopHotkeyCapture();
-        }
     },
 
     closeTabModal() {
@@ -131,71 +128,36 @@ window.handlers = {
         modal.style.display = 'none';
     },
 
-    captureHotkey(target) {
-        if (isCapturing) {
-            this.stopHotkeyCapture();
-            return;
-        }
-        
-        isCapturing = true;
-        captureTarget = target;
-        
+    async captureHotkey(target) {
+        // give the user a visual cue
         const btn = document.getElementById(`${target}Hotkey`);
-        btn.textContent = 'Press keys...';
+        btn.textContent = 'Listening...';
         btn.classList.add('capturing');
         
-        window.electron.pauseHotkeys();
-        document.addEventListener('keydown', this.handleHotkeyCapture);
-    },
-
-    handleHotkeyCapture(e) {
-        if (e.target.tagName === 'INPUT' && e.target.type === 'text') {
-            return;
-        }
+        // knock on the drawbridge and wait for the sovereign net to catch a key! :3
+        const capturedKey = await window.electron.startHotkeyBinding();
         
-        e.preventDefault();
+        // we got it! extract the human-readable string (e.g., "A", "F1", "Space")
+        const hotkeyString = capturedKey.keyName;
         
-        const mods = [];
-        if (e.ctrlKey) mods.push('Control');
-        if (e.metaKey) mods.push('Command');
-        if (e.altKey) mods.push('Alt');
-        if (e.shiftKey) mods.push('Shift');
-        
-        const key = e.key;
-        if (!['Control', 'Meta', 'Alt', 'Shift'].includes(key)) {
-            const hotkey = [...mods, key].join('+');
-            
-            const btn = document.getElementById(`${captureTarget}Hotkey`);
-            btn.textContent = hotkey;
-            
-            if (captureTarget.startsWith('counter')) {
-                if (captureTarget === 'counterIncrease') {
-                    editingCounter.increaseHotkey = hotkey;
-                } else {
-                    editingCounter.decreaseHotkey = hotkey;
-                }
-            } else {
-                const settingName = `${captureTarget}Hotkey`;
-                appState.globalSettings[settingName] = hotkey;
-                window.electron.updateGlobalSettings(appState.globalSettings);
-            }
-            
-            window.handlers.stopHotkeyCapture();
-        }
-    },
-
-    stopHotkeyCapture() {
-        if (!isCapturing) return;
-        
-        isCapturing = false;
-        const btn = document.getElementById(`${captureTarget}Hotkey`);
+        // update the ui
+        btn.textContent = hotkeyString;
         btn.classList.remove('capturing');
         
-        document.removeEventListener('keydown', this.handleHotkeyCapture);
-        window.electron.resumeHotkeys();
-        
-        captureTarget = null;
+        // save it to the correct mathematical state
+        if (target.startsWith('counter')) {
+            if (target === 'counterIncrease') {
+                editingCounter.increaseHotkey = hotkeyString;
+            } else {
+                editingCounter.decreaseHotkey = hotkeyString;
+            }
+        } else {
+            const settingName = `${target}Hotkey`;
+            appState.globalSettings[settingName] = hotkeyString;
+            window.electron.updateGlobalSettings(appState.globalSettings);
+        }
     },
+
 
     clearHotkey(type) {
         const btn = document.getElementById(`${type}Hotkey`);
