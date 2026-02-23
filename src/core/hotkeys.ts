@@ -30,7 +30,7 @@ export class HotkeyManager {
 
         // map specific counter hotkeys
         counters.forEach(counter => {
-            if (counter.isSelected) {
+            if (counter.isSelected) { // <-- the strict shield is intact! :3
                 if (counter.increaseHotkey) {
                     this.addToMap(counter.increaseHotkey, { action: 'increase', counterId: counter.id, amount: counter.increaseAmount ?? globalSettings.increaseAmount ?? 1 });
                 }

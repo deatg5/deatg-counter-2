@@ -12,7 +12,6 @@ const hotkeyManager = new HotkeyManager();
 let currentState: AppState;
 
 async function createWindow() {
-
     mainWindow = new BrowserWindow({
         width: 1000,
         height: 800,
@@ -25,41 +24,43 @@ async function createWindow() {
         }
     });
 
-    // Load the app state
     currentState = await storage.loadState();
-    
-    // Load the HTML file
     mainWindow.loadFile(path.join(__dirname, '../../public/index.html'));
     
-    // Send initial state to renderer
     mainWindow.webContents.on('did-finish-load', () => {
         mainWindow?.webContents.send('state-update', currentState);
     });
 
-    // Register initial hotkeys
     updateHotkeys();
 
-    uIOhook.start()
+    // awaken the global net AND give it ears to listen! ><
+    uIOhook.start();
+    uIOhook.on('keydown', (event) => {
+        const humanReadableName = keyNameMap[event.keycode] || `KeyCode_${event.keycode}`;
+        hotkeyManager.handleKeyPress(humanReadableName);
+    });
 }
 
 function updateHotkeys() {
     hotkeyManager.registerCounterHotkeys(
         currentState.counters,
         currentState.globalSettings,
-        (counterId, amount) => {
-            // Increase counter
+        async (counterId, amount) => {
+            // increase counter
             const counter = currentState.counters.find(c => c.id === counterId);
             if (counter) {
                 counter.count = Number(counter.count) + Number(amount);
                 mainWindow?.webContents.send('counter-updated', counter);
+                await storage.saveState(currentState); // <-- bind it to the hard drive! ^^
             }
         },
-        (counterId, amount) => {
-            // Decrease counter
+        async (counterId, amount) => {
+            // decrease counter
             const counter = currentState.counters.find(c => c.id === counterId);
             if (counter) {
                 counter.count = Math.max(0, Number(counter.count) - Number(amount));
                 mainWindow?.webContents.send('counter-updated', counter);
+                await storage.saveState(currentState); // <-- bind it to the hard drive! ^^
             }
         }
     );
