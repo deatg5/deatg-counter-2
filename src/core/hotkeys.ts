@@ -1,99 +1,79 @@
-// src/core/hotkeys.ts
-import { globalShortcut } from 'electron';
 import { Counter, GlobalSettings } from './types';
-import { uIOhook, UiohookKey } from 'uiohook-napi';
+
+// define the shape of our mathematical commands
+type HotkeyAction = {
+    action: 'increase' | 'decrease';
+    counterId: string;
+    amount: number;
+};
 
 export class HotkeyManager {
-    private registeredHotkeys: Map<string, () => void> = new Map();
-    
+    private hotkeyMap: Map<string, HotkeyAction[]> = new Map();
+    private onIncrease: (id: string, amount: number) => void;
+    private onDecrease: (id: string, amount: number) => void;
+
+    constructor() {
+        this.onIncrease = () => {};
+        this.onDecrease = () => {};
+    }
+
+    // this just maps the strings (like "ArrowUp" or "A") to the math, NO system binding here!
     registerCounterHotkeys(
         counters: Counter[],
         globalSettings: GlobalSettings,
-        onIncrease: (counterId: string, amount: number) => void,
-        onDecrease: (counterId: string, amount: number) => void
+        onIncrease: (id: string, amount: number) => void,
+        onDecrease: (id: string, amount: number) => void
     ) {
-        // Clear existing hotkeys
-        this.unregisterAll();
-        
-        // Build hotkey map (counter-specific + global)
-        const hotkeyMap = new Map<string, {
-            action: 'increase' | 'decrease',
-            counterId?: string,
-            amount: number
-        }[]>();
+        this.hotkeyMap.clear();
+        this.onIncrease = onIncrease;
+        this.onDecrease = onDecrease;
 
-        // Register counter-specific hotkeys
+        // map specific counter hotkeys
         counters.forEach(counter => {
             if (counter.isSelected) {
                 if (counter.increaseHotkey) {
-                    this.addToHotkeyMap(hotkeyMap, counter.increaseHotkey, {
-                        action: 'increase',
-                        counterId: counter.id,
-                        amount: counter.increaseAmount ?? globalSettings.increaseAmount
-                    });
+                    this.addToMap(counter.increaseHotkey, { action: 'increase', counterId: counter.id, amount: counter.increaseAmount ?? globalSettings.increaseAmount ?? 1 });
                 }
                 if (counter.decreaseHotkey) {
-                    this.addToHotkeyMap(hotkeyMap, counter.decreaseHotkey, {
-                        action: 'decrease',
-                        counterId: counter.id,
-                        amount: counter.decreaseAmount ?? globalSettings.decreaseAmount
-                    });
+                    this.addToMap(counter.decreaseHotkey, { action: 'decrease', counterId: counter.id, amount: counter.decreaseAmount ?? globalSettings.decreaseAmount ?? 1 });
                 }
             }
         });
 
-        // Register global hotkeys for selected counters without specific hotkeys
+        // map global fallbacks
         const selectedCounters = counters.filter(c => c.isSelected);
         selectedCounters.forEach(counter => {
-            if (!counter.increaseHotkey) {
-                this.addToHotkeyMap(hotkeyMap, globalSettings.increaseHotkey, {
-                    action: 'increase',
-                    counterId: counter.id,
-                    amount: counter.increaseAmount ?? globalSettings.increaseAmount
-                });
+            if (!counter.increaseHotkey && globalSettings.increaseHotkey) {
+                this.addToMap(globalSettings.increaseHotkey, { action: 'increase', counterId: counter.id, amount: counter.increaseAmount ?? globalSettings.increaseAmount ?? 1 });
             }
-            if (!counter.decreaseHotkey) {
-                this.addToHotkeyMap(hotkeyMap, globalSettings.decreaseHotkey, {
-                    action: 'decrease',
-                    counterId: counter.id,
-                    amount: counter.decreaseAmount ?? globalSettings.decreaseAmount
-                });
+            if (!counter.decreaseHotkey && globalSettings.decreaseHotkey) {
+                this.addToMap(globalSettings.decreaseHotkey, { action: 'decrease', counterId: counter.id, amount: counter.decreaseAmount ?? globalSettings.decreaseAmount ?? 1 });
             }
-        });
-
-        // Register all collected hotkeys
-        hotkeyMap.forEach((actions, hotkey) => {
-            this.registerHotkey(hotkey, () => {
-                actions.forEach(({ action, counterId, amount }) => {
-                    if (action === 'increase') {
-                        onIncrease(counterId!, amount);
-                    } else {
-                        onDecrease(counterId!, amount);
-                    }
-                });
-            });
         });
     }
 
-    private addToHotkeyMap(
-        map: Map<string, any[]>,
-        hotkey: string,
-        action: any
-    ) {
-        if (!map.has(hotkey)) {
-            map.set(hotkey, []);
+    private addToMap(key: string, action: HotkeyAction) {
+        if (!this.hotkeyMap.has(key)) {
+            this.hotkeyMap.set(key, []);
         }
-        map.get(hotkey)!.push(action);
+        this.hotkeyMap.get(key)!.push(action);
     }
 
-    private registerHotkey(accelerator: string, callback: () => void) {
-        if (globalShortcut.register(accelerator, callback)) {
-            this.registeredHotkeys.set(accelerator, callback);
+    // our main process will whisper to this whenever it hears a raw hardware keystroke!
+    handleKeyPress(keyString: string) {
+        const actions = this.hotkeyMap.get(keyString);
+        if (actions) {
+            actions.forEach(action => {
+                if (action.action === 'increase') {
+                    this.onIncrease(action.counterId, action.amount);
+                } else {
+                    this.onDecrease(action.counterId, action.amount);
+                }
+            });
         }
     }
 
     unregisterAll() {
-        globalShortcut.unregisterAll();
-        this.registeredHotkeys.clear();
+        this.hotkeyMap.clear();
     }
 }
