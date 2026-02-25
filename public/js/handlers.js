@@ -137,7 +137,7 @@ window.handlers = {
         // knock on the drawbridge and wait for the sovereign net to catch a key! :3
         const capturedKey = await window.electron.startHotkeyBinding();
         
-        // we got it! extract the human-readable string (e.g., "A", "F1", "Space")
+        // we got it! extract the human-readable string
         const hotkeyString = capturedKey.keyName;
         
         // update the ui
@@ -152,7 +152,8 @@ window.handlers = {
                 editingCounter.decreaseHotkey = hotkeyString;
             }
         } else {
-            const settingName = `${target}Hotkey`;
+            // transmute the raw target string to the EXACT property the backend expects! ><
+            const settingName = target === 'globalIncrease' ? 'increaseHotkey' : 'decreaseHotkey';
             appState.globalSettings[settingName] = hotkeyString;
             window.electron.updateGlobalSettings(appState.globalSettings);
         }
