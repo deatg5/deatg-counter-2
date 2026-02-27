@@ -100,6 +100,22 @@ window.handlers = {
         this.closeModal();
     },
 
+    deleteCounter() {
+        if (!editingCounter) return;
+        
+        // a tiny ward to prevent tragic accidents! ;-;
+        if (!confirm(`Are you absolutely sure you want to delete "${editingCounter.name}"?`)) return;
+        
+        // whisper the command across the bridge
+        window.electron.deleteCounter(editingCounter.id);
+        
+        // sever it from the local sensory illusion
+        appState.counters = appState.counters.filter(c => c.id !== editingCounter.id);
+        
+        this.closeModal();
+        renderCounters(); // re-draw the physical screen without the ghost! :3
+    },
+
     saveNewTab(event) {
         event.preventDefault();
         
@@ -171,5 +187,19 @@ window.handlers = {
                 editingCounter.decreaseHotkey = undefined;
             }
         }
+    },
+
+    updateGlobalAmount(type, value) {
+        // transmute the string to a strict number, or let it be undefined
+        const numValue = value !== "" ? Number(value) : undefined;
+        
+        if (type === 'increase') {
+            appState.globalSettings.increaseAmount = numValue;
+        } else {
+            appState.globalSettings.decreaseAmount = numValue;
+        }
+        
+        // whisper the new truth across the bridge! :3
+        window.electron.updateGlobalSettings(appState.globalSettings);
     }
 };

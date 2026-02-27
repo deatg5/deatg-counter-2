@@ -85,6 +85,20 @@ function setupEventListeners() {
         window.handlers.clearHotkey('counterIncrease'));
     document.getElementById('clearDecreaseHotkey')?.addEventListener('click', () => 
         window.handlers.clearHotkey('counterDecrease'));
+
+    // Global amount nerves! ><
+    document.getElementById('globalIncreaseAmount')?.addEventListener('change', (e) => {
+        window.handlers.updateGlobalAmount('increase', e.target.value);
+    });
+    
+    document.getElementById('globalDecreaseAmount')?.addEventListener('change', (e) => {
+        window.handlers.updateGlobalAmount('decrease', e.target.value);
+    });
+
+    // the destructive nerve! ._.
+    document.getElementById('deleteCounterBtn')?.addEventListener('click', () => {
+        window.handlers.deleteCounter();
+    });
 }
 
 function renderTabs() {

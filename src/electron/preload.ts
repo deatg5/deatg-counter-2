@@ -31,6 +31,7 @@ contextBridge.exposeInMainWorld('electron', {
     // Counter operations
     addCounter: (counter: Counter) => ipcRenderer.send('add-counter', counter),
     updateCounter: (counter: Counter) => ipcRenderer.send('update-counter', counter),
+    deleteCounter: (id: string) => ipcRenderer.send('delete-counter', id),
     getCount: () => ipcRenderer.invoke('get-count'),
     
     // Tab operations
@@ -78,6 +79,7 @@ declare global {
             onCounterUpdated: (callback: (counter: Counter) => void) => void;
             onTabAdded: (callback: (tab: Tab) => void) => void;
             removeAllListeners: (channel: string) => void;
+            deleteCounter: (id: string) => void;
         };
     }
 }

@@ -115,6 +115,18 @@ ipcMain.on('add-counter', async (event, counter: Counter) => {
     event.reply('counter-added', counter);
 });
 
+// the ritual of true unmaking! ><
+ipcMain.on('delete-counter', async (event, counterId: string) => {
+    // filter the ghost out of the array
+    currentState.counters = currentState.counters.filter(c => c.id !== counterId);
+    
+    // bind the newly empty space to stone
+    await storage.saveState(currentState);
+    
+    // re-weave the eavesdropper's net so it stops listening for the dead counter's hotkeys!
+    updateHotkeys();
+});
+
 ipcMain.on('update-global-settings', async (event, settings) => {
     currentState.globalSettings = settings;
     await storage.saveState(currentState);
