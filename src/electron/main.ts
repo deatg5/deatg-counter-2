@@ -5,16 +5,19 @@ import { StorageManager } from '../core/storage';
 import { HotkeyManager } from '../core/hotkeys';
 import { AppState, Counter } from '../core/types';
 import { uIOhook, UiohookKey } from 'uiohook-napi';
+import { DiscordPresenceManager } from './discord';
 
 let mainWindow: BrowserWindow | null = null;
 const storage = new StorageManager();
 const hotkeyManager = new HotkeyManager();
+const discordManager = new DiscordPresenceManager();
 let currentState: AppState;
 
 async function createWindow() {
     mainWindow = new BrowserWindow({
         width: 1000,
         height: 800,
+        icon: path.join(__dirname, '../../public/icon.ico'),
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
@@ -25,6 +28,7 @@ async function createWindow() {
     });
 
     currentState = await storage.loadState();
+    discordManager.setEnabled(!!currentState.globalSettings.discordRPCEnabled);
     mainWindow.loadFile(path.join(__dirname, '../../public/index.html'));
     
     mainWindow.webContents.on('did-finish-load', () => {
@@ -64,6 +68,7 @@ function updateHotkeys() {
             }
         }
     );
+    discordManager.updateCounters(currentState.counters);
 }
 
 // IPC handlers
@@ -128,9 +133,15 @@ ipcMain.on('delete-counter', async (event, counterId: string) => {
 });
 
 ipcMain.on('update-global-settings', async (event, settings) => {
+    const wasEnabled = currentState.globalSettings.discordRPCEnabled;
     currentState.globalSettings = settings;
     await storage.saveState(currentState);
-    updateHotkeys();
+
+    // dynamically connect or sever the socket based on the toggle! :3
+    if (wasEnabled !== settings.discordRPCEnabled) {
+        discordManager.setEnabled(!!settings.discordRPCEnabled);
+    }
+    updateHotkeys(); 
 });
 
 // ... similar handlers for tabs, selection, etc.
@@ -138,6 +149,7 @@ ipcMain.on('update-global-settings', async (event, settings) => {
 app.whenReady().then(createWindow);
 
 app.on('window-all-closed', () => {
+    discordManager.disconnect();
     if (process.platform !== 'darwin') {
         app.quit();
     }

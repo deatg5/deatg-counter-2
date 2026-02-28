@@ -99,6 +99,11 @@ function setupEventListeners() {
     document.getElementById('deleteCounterBtn')?.addEventListener('click', () => {
         window.handlers.deleteCounter();
     });
+
+    document.getElementById('discordRPCToggle')?.addEventListener('change', (e) => {
+        appState.globalSettings.discordRPCEnabled = e.target.checked;
+        window.electron.updateGlobalSettings(appState.globalSettings);
+    });
 }
 
 function renderTabs() {
@@ -146,6 +151,9 @@ function updateGlobalSettings() {
         globalSettings.increaseHotkey || 'Set Hotkey';
     document.getElementById('globalDecreaseHotkey').textContent = 
         globalSettings.decreaseHotkey || 'Set Hotkey';
+
+    const rpcToggle = document.getElementById('discordRPCToggle');
+    if (rpcToggle) rpcToggle.checked = !!globalSettings.discordRPCEnabled;
 }
 
 // Set up event listeners when the page loads
