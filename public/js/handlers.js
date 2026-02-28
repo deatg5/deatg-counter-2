@@ -1,21 +1,8 @@
 // public/js/handlers.js
 
-// public/js/handlers.js
-
-// a temporal ward to silence the echoes! ><
-let lastCastTime = 0;
-function isEcho() {
-    const now = Date.now();
-    // if less than 200ms has passed, it is a phantom duplicate! 
-    if (now - lastCastTime < 200) return true; 
-    lastCastTime = now;
-    return false;
-}
-
+// Create a handlers object to store all our functions
 window.handlers = {
     addCounter() {
-        if (isEcho()) return; // block the phantom! ._.
-
         const counter = {
             id: Date.now().toString(),
             name: 'New Counter',
@@ -28,11 +15,7 @@ window.handlers = {
             decreaseHotkey: undefined
         };
         
-        try { window.electron.addCounter(counter); } catch (e) { console.error("Bridge missing!", e); }
-        
-        if (!appState.counters) appState.counters = [];
-        appState.counters.push(counter);
-        renderCounters();
+        window.electron.addCounter(counter);
     },
 
     editCounter(counterId) {
@@ -84,6 +67,7 @@ window.handlers = {
         
         window.electron.deleteTab(tabId);
         
+        // Update local state
         appState.tabs = appState.tabs.filter(t => t.id !== tabId);
         appState.counters = appState.counters.filter(c => c.tabId !== tabId);
         
@@ -97,77 +81,55 @@ window.handlers = {
     saveCounter(event) {
         event.preventDefault();
 
+        // harvest the raw strings first to keep our ontology clean :3
         const incInput = document.getElementById('counterIncreaseAmount').value;
         const decInput = document.getElementById('counterDecreaseAmount').value;
         
         const updatedCounter = {
             ...editingCounter,
             name: document.getElementById('counterName').value,
+            // Number("") defaults to 0, which is safe for the main count!
             count: Number(document.getElementById('counterCount').value), 
+            
+            // check for strict emptiness before transmuting to a number
             increaseAmount: incInput !== "" ? Number(incInput) : undefined,
             decreaseAmount: decInput !== "" ? Number(decInput) : undefined
         };
         
         window.electron.updateCounter(updatedCounter);
-        window.handlers.closeModal();
+        this.closeModal();
     },
 
     deleteCounter() {
         if (!editingCounter) return;
         
+        // a tiny ward to prevent tragic accidents! ;-;
         if (!confirm(`Are you absolutely sure you want to delete "${editingCounter.name}"?`)) return;
         
+        // whisper the command across the bridge
         window.electron.deleteCounter(editingCounter.id);
         
+        // sever it from the local sensory illusion
         appState.counters = appState.counters.filter(c => c.id !== editingCounter.id);
         
-        window.handlers.closeModal();
-        renderCounters(); 
+        this.closeModal();
+        renderCounters(); // re-draw the physical screen without the ghost! :3
     },
 
     saveNewTab(event) {
-        
-        if (event) event.preventDefault();
-        
-        if (isEcho()) return; // block the phantom! ><
+        event.preventDefault();
         
         const tabName = document.getElementById('newTabName').value;
-        if (!tabName) {
-            alert("you must give the anomaly a name first! ><");
-            return;
-        }
+        if (!tabName) return;
         
         const tab = {
             id: Date.now().toString(),
             name: tabName,
-            order: appState.tabs ? appState.tabs.length : 0
+            order: appState.tabs.length
         };
         
-        // try to whisper to the backend, but don't crash if the bridge is wounded!
-        try {
-            if (window.electron && window.electron.addTab) {
-                window.electron.addTab(tab);
-            } else {
-                console.warn("electron.addTab is missing from preload.ts! ;-;");
-            }
-        } catch (err) {
-            console.error(err);
-        }
-        
-        // instantly weave the local illusion! :3
-        if (!appState.tabs) appState.tabs = [];
-        appState.tabs.push(tab);
-        appState.activeTabId = tab.id; 
-        
-        // try to redraw the screen, but catch any rendering anomalies!
-        try {
-            renderUI(); 
-        } catch (err) {
-            console.error("renderUI crashed:", err);
-        }
-        
-        // explicitly use window.handlers to ensure context is never lost
-        window.handlers.closeTabModal();
+        window.electron.addTab(tab);
+        this.closeTabModal();
     },
 
     closeModal() {
@@ -178,21 +140,27 @@ window.handlers = {
     closeTabModal() {
         const modal = document.getElementById('addTabModal');
         const input = document.getElementById('newTabName');
-        if (input) input.value = '';
-        if (modal) modal.style.display = 'none';
+        input.value = '';
+        modal.style.display = 'none';
     },
 
     async captureHotkey(target) {
+        // give the user a visual cue
         const btn = document.getElementById(`${target}Hotkey`);
         btn.textContent = 'Listening...';
         btn.classList.add('capturing');
         
+        // knock on the drawbridge and wait for the sovereign net to catch a key! :3
         const capturedKey = await window.electron.startHotkeyBinding();
+        
+        // we got it! extract the human-readable string
         const hotkeyString = capturedKey.keyName;
         
+        // update the ui
         btn.textContent = hotkeyString;
         btn.classList.remove('capturing');
         
+        // save it to the correct mathematical state
         if (target.startsWith('counter')) {
             if (target === 'counterIncrease') {
                 editingCounter.increaseHotkey = hotkeyString;
@@ -200,11 +168,13 @@ window.handlers = {
                 editingCounter.decreaseHotkey = hotkeyString;
             }
         } else {
+            // transmute the raw target string to the EXACT property the backend expects! ><
             const settingName = target === 'globalIncrease' ? 'increaseHotkey' : 'decreaseHotkey';
             appState.globalSettings[settingName] = hotkeyString;
             window.electron.updateGlobalSettings(appState.globalSettings);
         }
     },
+
 
     clearHotkey(type) {
         const btn = document.getElementById(`${type}Hotkey`);
@@ -220,6 +190,7 @@ window.handlers = {
     },
 
     updateGlobalAmount(type, value) {
+        // transmute the string to a strict number, or let it be undefined
         const numValue = value !== "" ? Number(value) : undefined;
         
         if (type === 'increase') {
@@ -228,7 +199,7 @@ window.handlers = {
             appState.globalSettings.decreaseAmount = numValue;
         }
         
+        // whisper the new truth across the bridge! :3
         window.electron.updateGlobalSettings(appState.globalSettings);
-    },
-    
+    }
 };

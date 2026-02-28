@@ -1,5 +1,6 @@
 // public/js/ui.js
 
+// Move all function declarations to the top
 function renderUI() {
     renderTabs();
     renderCounters();
@@ -7,26 +8,29 @@ function renderUI() {
 }
 
 function attachTabEventListeners() {
+    // Tab deletion
     document.querySelectorAll('.tab-delete').forEach(button => {
         button.addEventListener('click', (e) => {
-            e.stopPropagation(); 
+            e.stopPropagation(); // Prevent tab selection when deleting
             const tabId = e.target.dataset.tabId;
             window.handlers.deleteTab(tabId);
         });
     });
     
+    // Tab selection
     document.querySelectorAll('.tab').forEach(tab => {
         tab.addEventListener('click', (e) => {
             const tabId = e.target.dataset.tabId;
             window.handlers.selectTab(tabId);
-            appState.activeTabId = tabId; 
-            renderTabs(); 
-            renderCounters(); 
+            appState.activeTabId = tabId; // Update the active tab in the state
+            renderTabs(); // Re-render the tabs to reflect the active tab change
+            renderCounters(); // Re-render the counters to reflect the active tab change
         });
     });
 }
 
 function attachCounterEventListeners() {
+    // Counter checkboxes
     document.querySelectorAll('.counter-checkbox').forEach(checkbox => {
         checkbox.addEventListener('change', (e) => {
             const counterId = e.target.dataset.counterId;
@@ -34,6 +38,7 @@ function attachCounterEventListeners() {
         });
     });
     
+    // Edit buttons
     document.querySelectorAll('.edit-counter-btn').forEach(button => {
         button.addEventListener('click', (e) => {
             const counterId = e.target.dataset.counterId;
@@ -43,22 +48,29 @@ function attachCounterEventListeners() {
 }
 
 function setupEventListeners() {
+    // Add Counter button
     document.getElementById('addCounterBtn')?.addEventListener('click', window.handlers.addCounter);
+    
+    // Add Tab button
     document.getElementById('addTabBtn')?.addEventListener('click', window.handlers.addTab);
     
+    // Counter form submission
     document.getElementById('counterForm')?.addEventListener('submit', (e) => {
         e.preventDefault();
         window.handlers.saveCounter(e);
     });
     
+    // Tab form submission
     document.getElementById('tabForm')?.addEventListener('submit', (e) => {
         e.preventDefault();
         window.handlers.saveNewTab(e);
     });
     
+    // Modal cancel buttons
     document.getElementById('cancelEditBtn')?.addEventListener('click', window.handlers.closeModal);
     document.getElementById('cancelTabBtn')?.addEventListener('click', window.handlers.closeTabModal);
     
+    // Hotkey buttons
     document.getElementById('counterIncreaseHotkey')?.addEventListener('click', () => 
         window.handlers.captureHotkey('counterIncrease'));
     document.getElementById('counterDecreaseHotkey')?.addEventListener('click', () => 
@@ -68,11 +80,13 @@ function setupEventListeners() {
     document.getElementById('globalDecreaseHotkey')?.addEventListener('click', () => 
         window.handlers.captureHotkey('globalDecrease'));
     
+    // Clear hotkey buttons
     document.getElementById('clearIncreaseHotkey')?.addEventListener('click', () => 
         window.handlers.clearHotkey('counterIncrease'));
     document.getElementById('clearDecreaseHotkey')?.addEventListener('click', () => 
         window.handlers.clearHotkey('counterDecrease'));
 
+    // Global amount nerves! ><
     document.getElementById('globalIncreaseAmount')?.addEventListener('change', (e) => {
         window.handlers.updateGlobalAmount('increase', e.target.value);
     });
@@ -81,22 +95,16 @@ function setupEventListeners() {
         window.handlers.updateGlobalAmount('decrease', e.target.value);
     });
 
+    // the destructive nerve! ._.
     document.getElementById('deleteCounterBtn')?.addEventListener('click', () => {
         window.handlers.deleteCounter();
-    });
-
-    document.getElementById('discordRPCToggle')?.addEventListener('change', (e) => {
-        appState.globalSettings.discordRPCEnabled = e.target.checked;
-        window.electron.updateGlobalSettings(appState.globalSettings);
     });
 }
 
 function renderTabs() {
     const tabList = document.getElementById('tabList');
-    if (!tabList) return;
-
-    tabList.innerHTML = (appState.tabs || [])
-        .sort((a, b) => (a.order || 0) - (b.order || 0))
+    tabList.innerHTML = appState.tabs
+        .sort((a, b) => a.order - b.order)
         .map(tab => `
             <div class="tab ${tab.id === appState.activeTabId ? 'active' : ''}" data-tab-id="${tab.id}">
                 ${tab.name}
@@ -109,9 +117,7 @@ function renderTabs() {
 
 function renderCounters() {
     const counterList = document.getElementById('counterList');
-    if (!counterList) return;
-
-    const activeCounters = (appState.counters || [])
+    const activeCounters = appState.counters
         .filter(counter => counter.tabId === appState.activeTabId);
     
     counterList.innerHTML = activeCounters.map(counter => `
@@ -134,18 +140,13 @@ function updateGlobalSettings() {
     const { globalSettings } = appState;
     if (!globalSettings) return;
 
-    const incInput = document.getElementById('globalIncreaseAmount');
-    // strict fallback so the browser doesn't swallow undefined! :3
-    if (incInput) incInput.value = globalSettings.increaseAmount ?? ''; 
-    
-    const decInput = document.getElementById('globalDecreaseAmount');
-    if (decInput) decInput.value = globalSettings.decreaseAmount ?? '';
-    
-    const incBtn = document.getElementById('globalIncreaseHotkey');
-    if (incBtn) incBtn.textContent = globalSettings.increaseHotkey || 'Set Hotkey';
-    
-    const decBtn = document.getElementById('globalDecreaseHotkey');
-    if (decBtn) decBtn.textContent = globalSettings.decreaseHotkey || 'Set Hotkey';
+    document.getElementById('globalIncreaseAmount').value = globalSettings.increaseAmount;
+    document.getElementById('globalDecreaseAmount').value = globalSettings.decreaseAmount;
+    document.getElementById('globalIncreaseHotkey').textContent = 
+        globalSettings.increaseHotkey || 'Set Hotkey';
+    document.getElementById('globalDecreaseHotkey').textContent = 
+        globalSettings.decreaseHotkey || 'Set Hotkey';
 }
 
+// Set up event listeners when the page loads
 document.addEventListener('DOMContentLoaded', setupEventListeners);

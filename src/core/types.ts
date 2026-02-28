@@ -31,7 +31,6 @@ export interface GlobalSettings {
   decreaseAmount: number;
   increaseHotkey: string;
   decreaseHotkey: string;
-  discordRPCEnabled?: boolean;
 }
 
 export interface AppState {
