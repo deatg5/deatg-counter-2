@@ -8,9 +8,15 @@ let editingCounter = null;
 
 // Initialize
 window.electron.onStateUpdate((state) => {
+    // actualize the state FIRST! :3
+    appState = state; 
+    
+    // now that the memory exists, we can safely align the physical toggle! ^^
     const rpcToggle = document.getElementById('discordRPCToggle');
-        if (rpcToggle) rpcToggle.checked = !!appState.globalSettings.discordRPCEnabled;
-    appState = state;
+    if (rpcToggle && appState.globalSettings) {
+        rpcToggle.checked = !!appState.globalSettings.discordRPCEnabled;
+    }
+    
     renderUI();
 });
 
