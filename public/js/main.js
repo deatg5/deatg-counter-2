@@ -8,6 +8,8 @@ let editingCounter = null;
 
 // Initialize
 window.electron.onStateUpdate((state) => {
+    const rpcToggle = document.getElementById('discordRPCToggle');
+        if (rpcToggle) rpcToggle.checked = !!appState.globalSettings.discordRPCEnabled;
     appState = state;
     renderUI();
 });

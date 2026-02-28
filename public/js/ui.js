@@ -99,6 +99,12 @@ function setupEventListeners() {
     document.getElementById('deleteCounterBtn')?.addEventListener('click', () => {
         window.handlers.deleteCounter();
     });
+
+    // the discord presence nerve! ><
+    document.getElementById('discordRPCToggle')?.addEventListener('change', (e) => {
+        appState.globalSettings.discordRPCEnabled = e.target.checked;
+        window.electron.updateGlobalSettings(appState.globalSettings);
+    });
 }
 
 function renderTabs() {

@@ -5,10 +5,12 @@ import { StorageManager } from '../core/storage';
 import { HotkeyManager } from '../core/hotkeys';
 import { AppState, Counter } from '../core/types';
 import { uIOhook, UiohookKey } from 'uiohook-napi';
+import { DiscordPresenceManager } from './discord';
 
 let mainWindow: BrowserWindow | null = null;
 const storage = new StorageManager();
 const hotkeyManager = new HotkeyManager();
+const discordManager = new DiscordPresenceManager();
 let currentState: AppState;
 
 async function createWindow() {
@@ -25,6 +27,7 @@ async function createWindow() {
     });
 
     currentState = await storage.loadState();
+    discordManager.setEnabled(!!currentState.globalSettings.discordRPCEnabled);
     mainWindow.loadFile(path.join(__dirname, '../../public/index.html'));
     
     mainWindow.webContents.on('did-finish-load', () => {
@@ -42,6 +45,7 @@ async function createWindow() {
 }
 
 function updateHotkeys() {
+    discordManager.updateCounters(currentState.counters);
     hotkeyManager.registerCounterHotkeys(
         currentState.counters,
         currentState.globalSettings,
@@ -128,8 +132,14 @@ ipcMain.on('delete-counter', async (event, counterId: string) => {
 });
 
 ipcMain.on('update-global-settings', async (event, settings) => {
+    const wasEnabled = currentState.globalSettings.discordRPCEnabled;
     currentState.globalSettings = settings;
     await storage.saveState(currentState);
+    
+    // dynamically connect or sever the socket based on the toggle! :3
+    if (wasEnabled !== settings.discordRPCEnabled) {
+        discordManager.setEnabled(!!settings.discordRPCEnabled);
+    }
     updateHotkeys();
 });
 
@@ -145,6 +155,7 @@ app.on('window-all-closed', () => {
 
 app.on('will-quit', () => {
     uIOhook.stop();
+    discordManager.disconnect(); // <-- let the envoy sleep! ;-;
 });
 
 // in main.ts
