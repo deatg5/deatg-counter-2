@@ -212,5 +212,11 @@ window.handlers = {
         }
         
         window.electron.updateGlobalSettings(appState.globalSettings);
-    }
+    },
+    
 };
+
+// a magical bridge to heal any ancient, inline html nerves! ><
+Object.keys(window.handlers).forEach(key => {
+    window[key] = window.handlers[key];
+});
