@@ -1,7 +1,21 @@
 // public/js/handlers.js
 
+// public/js/handlers.js
+
+// a temporal ward to silence the echoes! ><
+let lastCastTime = 0;
+function isEcho() {
+    const now = Date.now();
+    // if less than 200ms has passed, it is a phantom duplicate! 
+    if (now - lastCastTime < 200) return true; 
+    lastCastTime = now;
+    return false;
+}
+
 window.handlers = {
     addCounter() {
+        if (isEcho()) return; // block the phantom! ._.
+
         const counter = {
             id: Date.now().toString(),
             name: 'New Counter',
@@ -112,7 +126,10 @@ window.handlers = {
     },
 
     saveNewTab(event) {
+        
         if (event) event.preventDefault();
+        
+        if (isEcho()) return; // block the phantom! ><
         
         const tabName = document.getElementById('newTabName').value;
         if (!tabName) {
