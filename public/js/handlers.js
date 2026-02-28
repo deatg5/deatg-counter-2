@@ -15,7 +15,12 @@ window.handlers = {
             decreaseHotkey: undefined
         };
         
+        // whisper the creation to the backend
         window.electron.addCounter(counter);
+        
+        // CRITICAL: instantly manifest the counter in the visual realm! ^^
+        appState.counters.push(counter);
+        renderCounters();
     },
 
     editCounter(counterId) {
@@ -120,7 +125,10 @@ window.handlers = {
         event.preventDefault();
         
         const tabName = document.getElementById('newTabName').value;
-        if (!tabName) return;
+        if (!tabName) {
+            alert("you must give the anomaly a name first! ><");
+            return;
+        }
         
         const tab = {
             id: Date.now().toString(),
@@ -128,7 +136,14 @@ window.handlers = {
             order: appState.tabs.length
         };
         
+        // whisper to the sovereign brain to carve it into the hard drive
         window.electron.addTab(tab);
+        
+        // CRITICAL: instantly weave the local illusion without waiting! :3
+        appState.tabs.push(tab);
+        appState.activeTabId = tab.id; // automatically jump to the shiny new tab!
+        renderUI(); // force the entire screen to redraw!
+        
         this.closeTabModal();
     },
 
