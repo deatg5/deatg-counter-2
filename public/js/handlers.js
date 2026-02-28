@@ -215,8 +215,3 @@ window.handlers = {
     },
     
 };
-
-// a magical bridge to heal any ancient, inline html nerves! ><
-Object.keys(window.handlers).forEach(key => {
-    window[key] = window.handlers[key];
-});
